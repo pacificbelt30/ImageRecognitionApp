@@ -9,28 +9,36 @@ import com.google.ai.client.generativeai.type.content
 import com.google.ai.client.generativeai.type.generationConfig
 
 class Gemini {
-    suspend fun InitContent(input: Bitmap) {
-        val generativeModel =
-            GenerativeModel(
-                // Specify a Gemini model appropriate for your use case
-                modelName = "gemini-1.5-flash",
-                // Access your API key as a Build Configuration variable (see "Set up your API key" above)
-                apiKey = BuildConfig.apiKey)
 
-        val prompt = "If input images, describe about provided image."
+    private val modelName = "gemini-1.5-flash"
+    private val apiKey = BuildConfig.apiKey
 
-        val inputContent = content {
+    private fun createGenerativeModel(config: generationConfig? = null): GenerativeModel {
+        return GenerativeModel(
+            modelName = modelName,
+            apiKey = apiKey,
+            generationConfig = config
+        )
+    }
+
+    private fun createInputContent(prompt: String, input: Bitmap): content {
+        return content {
             text(prompt)
             image(input)
         }
+    }
+
+    suspend fun InitContent(input: Bitmap) {
+        val generativeModel = createGenerativeModel()
+        val prompt = "If input images, describe about provided image."
+        val inputContent = createInputContent(prompt, input)
         val response = generativeModel.generateContent(inputContent)
-        val response_text = response.text
-        if (response_text != null)
-            Log.d("GEMINI", response_text)
+        val responseText = response.text
+        if (responseText != null)
+            Log.d("GEMINI", responseText)
         else
             Log.d("GEMINI", "Response is NULL")
     }
-//    https://ai.google.dev/gemini-api/docs/get-started/tutorial?lang=android&hl=ja#generate-text-from-text-and-image-input
 
     suspend fun GetStructuredContent(input: Bitmap): String {
         val prompt = "If input images, describe about provided image."
@@ -62,29 +70,16 @@ class Gemini {
                 ),
             )
         }
-        val generativeModel =
-            GenerativeModel(
-                // Specify a Gemini model appropriate for your use case
-                modelName = "gemini-1.5-flash",
-                // Access your API key as a Build Configuration variable (see "Set up your API key" above)
-                apiKey = BuildConfig.apiKey,
-                generationConfig = config
-            )
-
-
-        val inputContent = content {
-            text(prompt)
-            image(input)
-        }
+        val generativeModel = createGenerativeModel(config)
+        val inputContent = createInputContent(prompt, input)
         val response = generativeModel.generateContent(inputContent)
-        val response_text = response.text
-        if (response_text != null) {
-            Log.d("GEMINI", "response = "+response_text)
-            return "{ \"result\": " + response_text.trimIndent() + " }"
-        }
-        else {
+        val responseText = response.text
+        return if (responseText != null) {
+            Log.d("GEMINI", "response = $responseText")
+            "{ \"result\": ${responseText.trimIndent()} }"
+        } else {
             Log.d("GEMINI", "Response is NULL")
-            return ""
+            ""
         }
     }
 }

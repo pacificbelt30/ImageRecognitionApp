@@ -67,13 +67,69 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import kotlin.math.roundToInt
 
+/**
+ * カメラアプリケーションのメインアクティビティ
+ * 
+ * カメラの初期化、状態管理、UIの表示を担当
+ */
 class MainActivity : ComponentActivity() {
-    // 【シャッター音】メディア音の宣言
-    private lateinit var sound: MediaActionSound
-
-    // 保存先ディレクトリ関連 ----------------------------------------------------------------------
-    private lateinit var outputDirectory: File
-
+    // カメラ関連のコンポーネント
+    private val cameraManager = CameraManager()
+    
+    // UI状態
+    private val uiState = CameraUiState()
+    
+    // ライフサイクル：Activity生成時
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        // カメラの初期化
+        initializeCamera()
+        
+        // UIの設定
+        setupUserInterface()
+    }
+    
+    // ライフサイクル：Activity破棄時
+    override fun onDestroy() {
+        super.onDestroy()
+        cameraManager.release()
+    }
+    
+    /**
+     * カメラコンポーネントの初期化
+     */
+    private fun initializeCamera() {
+        // 保存先ディレクトリの設定
+        cameraManager.outputDirectory = getOutputDirectory()
+        
+        // サウンドの初期化
+        cameraManager.initializeSound()
+        
+        // Executorの初期化
+        cameraManager.initializeExecutor()
+    }
+    
+    /**
+     * アプリケーションのUIをセットアップ
+     */
+    private fun setupUserInterface() {
+        setContent {
+            MainCamera(
+                outputDirectory = cameraManager.outputDirectory,
+                executor = cameraManager.cameraExecutor,
+                getCapturedMsg = uiState::getCapturedMsg,
+                setCapturedMsg = uiState::setCapturedMsg,
+                getRecognitionMsg = uiState::getRecognitionMsg,
+                setRecognitionMsg = uiState::setRecognitionMsg,
+                sound = cameraManager.sound
+            )
+        }
+    }
+    
+    /**
+     * 保存先ディレクトリを取得
+     */
     private fun getOutputDirectory(): File {
         // Scoped storage(対象範囲別ストレージ)
         val outDir = getExternalFilesDir(null)?.path.let {
@@ -81,63 +137,75 @@ class MainActivity : ComponentActivity() {
         }
         return if (outDir != null && outDir.exists()) outDir else filesDir
     }
-
-    // 撮影後のファイルパス表示関連 ----------------------------------------------------------------------
-    private lateinit var photoUri: Uri
-    private var capturedMsg = mutableStateOf("")
-    private var recognitionMsg = mutableStateOf("")
-
-    private fun setCapturedMsg(uri: Uri) {
-        photoUri = uri
-
-        val msg = photoUri.toString()
-        val msgTemp = msg.replace("file:///storage/emulated/0/", "内部ストレージ：")
-        val msg2 = msgTemp.replace("%20", " ")
-
-        capturedMsg.value = msg2
+    
+    /**
+     * カメラの初期化と管理を担当するクラス
+     */
+    private inner class CameraManager {
+        // カメラ関連のコンポーネント
+        lateinit var outputDirectory: File
+        lateinit var cameraExecutor: ExecutorService
+        lateinit var sound: MediaActionSound
+        
+        /**
+         * サウンドの初期化
+         */
+        fun initializeSound() {
+            sound = MediaActionSound()
+            sound.load(MediaActionSound.SHUTTER_CLICK)
+        }
+        
+        /**
+         * Executorの初期化
+         */
+        fun initializeExecutor() {
+            cameraExecutor = Executors.newSingleThreadExecutor()
+        }
+        
+        /**
+         * リソースの解放
+         */
+        fun release() {
+            cameraExecutor.shutdown()
+            sound.release()
+        }
     }
-
-    private fun getCapturedMsg(): String {
-        return capturedMsg.value
-    }
-
-    private fun getRecognitionMsg(): String {
-        return "認識結果: \n" + recognitionMsg.value
-    }
-
-    private fun setRecognitionMsg(s: String) {
-        recognitionMsg.value = s
-    }
-
-    // Executorフレームワーク(並行処理ユーティリティ)のインタフェース
-    private lateinit var cameraExecutor: ExecutorService
-
-    // ライフサイクル：Activity破棄時
-    override fun onDestroy() {
-        super.onDestroy()
-        cameraExecutor.shutdown()
-        sound.release() // 【シャッター音】シャッター音インスタンス解放
-    }
-
-    // ライフサイクル：Activity生成時
-    override fun onCreate(savedInstanceState: Bundle?) {
-        sound = MediaActionSound() // 【シャッター音】メディア音のインスタンス生成
-        sound.load(MediaActionSound.SHUTTER_CLICK) // 【シャッター音】シャッター音のロード
-
-        outputDirectory = getOutputDirectory() // 保存先ディレクトリ
-        cameraExecutor = Executors.newSingleThreadExecutor() // 単一のワーカースレッドExecutor(takePictureで撮影する時に渡す)
-
-        super.onCreate(savedInstanceState)
-        setContent {
-            MainCamera(
-                outputDirectory = outputDirectory,
-                executor = cameraExecutor,
-                setCapturedMsg = ::setCapturedMsg,
-                getCapturedMsg = ::getCapturedMsg,
-                getRecognitionMsg = ::getRecognitionMsg,
-                setRecognitionMsg = ::setRecognitionMsg,
-                sound = sound // 【シャッター音】
-            )
+    
+    /**
+     * カメラUI状態の管理クラス
+     */
+    private class CameraUiState {
+        // 撮影後のファイルパス表示関連
+        private var photoUri: Uri? = null
+        private val capturedMsg = mutableStateOf("")
+        private val recognitionMsg = mutableStateOf("")
+        
+        /**
+         * 撮影されたイメージのパスメッセージを取得
+         */
+        fun getCapturedMsg(): String = capturedMsg.value
+        
+        /**
+         * 撮影されたイメージのURIを設定し、表示用メッセージを更新
+         */
+        fun setCapturedMsg(uri: Uri) {
+            photoUri = uri
+            
+            val msg = uri.toString()
+            val msgTemp = msg.replace("file:///storage/emulated/0/", "内部ストレージ：")
+            capturedMsg.value = msgTemp.replace("%20", " ")
+        }
+        
+        /**
+         * 認識結果のメッセージを取得
+         */
+        fun getRecognitionMsg(): String = "認識結果: \n${recognitionMsg.value}"
+        
+        /**
+         * 認識結果のメッセージを設定
+         */
+        fun setRecognitionMsg(s: String) {
+            recognitionMsg.value = s
         }
     }
 }
@@ -173,52 +241,106 @@ private fun takePhoto(
     setCapturedMsg: (Uri) -> Unit,
     setRecognitionMsg: (String) -> Unit
 ) {
-    // ImageCaptureユースケースを安定させる
-    val imageCapture = imageCapture ?: return
-
-    // ファイル名フォーマットはタイムスタンプ
-    val filenameFormat = "yyyy-MM-dd-HH-mm-ss-SSS"
-    // 保存先ファイルのオブジェクト
-    val photoFile = File(
-        outputDirectory,
-        SimpleDateFormat(filenameFormat, Locale.JAPAN).format(System.currentTimeMillis()) + ".jpg"
-    )
-    // キャプチャした画像を保存する為の出力オプション。
+    // Ensure the image capture use case is initialized
+    val imageCaptureUseCase = imageCapture ?: return
+    
+    // Create output file with timestamp format
+    val photoFile = createPhotoFile(outputDirectory)
+    
+    // Create output options for the capture
     val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
-    // キャプチャの実行
-    imageCapture.takePicture(
+    
+    // Execute the capture process
+    imageCaptureUseCase.takePicture(
         outputOptions,
         executor,
         object : ImageCapture.OnImageSavedCallback {
-            // 結果はImageCapture.OnImageSavedCallbackでコールバックされる
             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                // 成功時の処理
-                // println("Photo capture Succeeded: ${output.savedUri}")
-                val savedUri = Uri.fromFile(photoFile)
-                setCapturedMsg(savedUri)
-                val path = savedUri.getPath()
-                if (path == null)
-                    return
-                val source = ImageDecoder.createSource(File(path))
-                val bitmap = ImageDecoder.decodeBitmap(source)
-                CoroutineScope(Dispatchers.Main).launch {
-                    val gem = Gemini()
-//                    gem.InitContent(bitmap)
-                    val output = gem.GetStructuredContent(bitmap)
-                    val output_json = Json.decodeFromString<RecognizeObjects>(output)
-                    var result = ""
-                    output_json.result.forEach{ obj->
-                        result += "・ " + obj.objectName + ": " + obj.reliability*100 + "%\n"
-                    }
-                    Log.d("GEMINI", result)
-                    setRecognitionMsg(result)
-                }
+                // Process the saved image
+                processImageAndRecognize(photoFile, setCapturedMsg, setRecognitionMsg)
             }
+            
             override fun onError(e: ImageCaptureException) {
-                // 失敗時の処理
-                // println("Photo capture Error: {$e}")
+                Log.e("Camera", "Photo capture failed: ${e.message}", e)
             }
-        })
+        }
+    )
+}
+
+/**
+ * Creates a photo file with timestamp-based name
+ */
+private fun createPhotoFile(outputDirectory: File): File {
+    val filenameFormat = "yyyy-MM-dd-HH-mm-ss-SSS"
+    val timestamp = SimpleDateFormat(filenameFormat, Locale.JAPAN).format(System.currentTimeMillis())
+    return File(outputDirectory, "$timestamp.jpg")
+}
+
+/**
+ * Processes the captured image and performs object recognition
+ */
+private fun processImageAndRecognize(
+    photoFile: File, 
+    setCapturedMsg: (Uri) -> Unit,
+    setRecognitionMsg: (String) -> Unit
+) {
+    val savedUri = Uri.fromFile(photoFile)
+    
+    // Update UI with file path
+    setCapturedMsg(savedUri)
+    
+    // Process the image for recognition
+    val path = savedUri.path ?: return
+    
+    try {
+        // Decode the bitmap from the saved file
+        val source = ImageDecoder.createSource(File(path))
+        val bitmap = ImageDecoder.decodeBitmap(source)
+        
+        // Launch image recognition in a coroutine
+        recognizeImageContents(bitmap, setRecognitionMsg)
+    } catch (e: Exception) {
+        Log.e("Camera", "Failed to process image: ${e.message}", e)
+    }
+}
+
+/**
+ * Performs image recognition using Gemini API
+ */
+private fun recognizeImageContents(bitmap: Bitmap, setRecognitionMsg: (String) -> Unit) {
+    CoroutineScope(Dispatchers.Main).launch {
+        try {
+            // Initialize Gemini and process the image
+            val gem = Gemini()
+            val output = gem.GetStructuredContent(bitmap)
+            
+            // Parse the JSON response
+            val outputJson = Json.decodeFromString<RecognizeObjects>(output)
+            
+            // Format the results for display
+            val result = formatRecognitionResults(outputJson)
+            
+            // Update the UI with the formatted results
+            Log.d("GEMINI", result)
+            setRecognitionMsg(result)
+        } catch (e: Exception) {
+            Log.e("GEMINI", "Recognition failed: ${e.message}", e)
+            setRecognitionMsg("画像認識に失敗しました。")
+        }
+    }
+}
+
+/**
+ * Formats recognition results as a human-readable string
+ */
+private fun formatRecognitionResults(outputJson: RecognizeObjects): String {
+    val builder = StringBuilder()
+    outputJson.result.forEach { obj ->
+        // Format reliability as percentage with two decimal places
+        val reliabilityPercent = (obj.reliability * 100).toFloat()
+        builder.append("・ ${obj.objectName}: ${reliabilityPercent}%\n")
+    }
+    return builder.toString()
 }
 
 // ProcessCameraProviderのインスタンスを返す
@@ -236,8 +358,8 @@ private suspend fun Context.getCameraProvider(): ProcessCameraProvider =
 fun MainCamera(
     outputDirectory: File,
     executor: Executor,
-    setCapturedMsg: (Uri) -> Unit,
     getCapturedMsg: () -> String,
+    setCapturedMsg: (Uri) -> Unit,
     getRecognitionMsg: () -> String,
     setRecognitionMsg: (String) -> Unit,
     sound: MediaActionSound // 【シャッター音】
@@ -259,8 +381,8 @@ fun MainCamera(
             CameraView(
                 outputDirectory = outputDirectory,
                 executor = executor,
-                setCapturedMsg = setCapturedMsg,
                 getCapturedMsg = getCapturedMsg,
+                setCapturedMsg = setCapturedMsg,
                 getRecognitionMsg = getRecognitionMsg,
                 setRecognitionMsg = setRecognitionMsg,
                 sound = sound // 【シャッター音】
@@ -294,134 +416,251 @@ fun MainCamera(
 fun CameraView(
     outputDirectory: File,
     executor: Executor,
-    setCapturedMsg: (Uri) -> Unit,
     getCapturedMsg: () -> String,
+    setCapturedMsg: (Uri) -> Unit,
     getRecognitionMsg: () -> String,
     setRecognitionMsg: (String) -> Unit,
-    sound: MediaActionSound // 【シャッター音】
+    sound: MediaActionSound
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    
+    // カメラプレビューのサイズとビューを設定
+    val (previewSize, previewView) = configureCameraPreview(context)
+    
+    // カメラコンポーネントを設定
+    val (preview, cameraSelector, imageCapture, useCaseGroup) = setupCameraComponents(previewSize, previewView)
+    
+    // カメラをライフサイクルにバインド
+    CameraLifecycle(lifecycleOwner, cameraSelector, useCaseGroup, context)
 
-    // Previewユースケース
+    // カメラUIを表示
+    CameraUI(
+        previewSize = previewSize,
+        previewView = previewView,
+        imageCapture = imageCapture,
+        outputDirectory = outputDirectory,
+        executor = executor,
+        getCapturedMsg = getCapturedMsg,
+        setCapturedMsg = setCapturedMsg,
+        getRecognitionMsg = getRecognitionMsg,
+        setRecognitionMsg = setRecognitionMsg,
+        sound = sound
+    )
+}
+
+/**
+ * カメラプレビューのサイズと表示領域を設定する
+ */
+@Composable
+private fun configureCameraPreview(context: Context): Pair<IntSize, PreviewView> {
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
-    val previewSize =
-        remember(density, configuration) {
-            val windowSize =
-                with(density) {
-                    IntSize(
-                        width = configuration.screenWidthDp.dp.toPx().toInt(),
-                        height = configuration.screenHeightDp.dp.toPx().toInt(),
-                    )
-                }
-            Log.d("SIZEZ", windowSize.toString())
-            calculatePreviewSize(windowSize) // 未実装
+    
+    // 画面サイズからプレビューサイズを計算
+    val previewSize = remember(density, configuration) {
+        val windowSize = with(density) {
+            IntSize(
+                width = configuration.screenWidthDp.dp.toPx().toInt(),
+                height = configuration.screenHeightDp.dp.toPx().toInt(),
+            )
         }
-    val previewView = remember { PreviewView(context).apply {
-        layoutParams =
-            android.view.ViewGroup.LayoutParams(
+        Log.d("SIZEZ", windowSize.toString())
+        calculatePreviewSize(windowSize)
+    }
+    
+    // プレビュービューを作成
+    val previewView = remember { 
+        PreviewView(context).apply {
+            layoutParams = android.view.ViewGroup.LayoutParams(
                 previewSize.width,
                 previewSize.height,
             )
-    } }
-    Log.d("SIZE", previewSize.width.toString()+", "+previewSize.height.toString())
-    previewView.scaleType = PreviewView.ScaleType.FIT_CENTER
-    val rs = ResolutionSelector.Builder()
-//        .setResolutionStrategy(ResolutionStrategy(Size(1080, 1920), ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER))
-//        .setResolutionStrategy(ResolutionStrategy(Size(108, 192), ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER))
+            scaleType = PreviewView.ScaleType.FIT_CENTER
+        }
+    }
+    
+    Log.d("SIZE", "${previewSize.width}, ${previewSize.height}")
+    
+    return Pair(previewSize, previewView)
+}
+
+/**
+ * カメラコンポーネント（Preview, CameraSelector, ImageCapture）を設定
+ */
+private fun setupCameraComponents(
+    previewSize: IntSize,
+    previewView: PreviewView
+): CameraComponents {
+    // 解像度セレクターを設定
+    val resolutionSelector = ResolutionSelector.Builder()
         .setAspectRatioStrategy(AspectRatioStrategy(AspectRatio.RATIO_4_3, AspectRatioStrategy.FALLBACK_RULE_AUTO))
-//        .setAspectRatioStrategy(AspectRatioStrategy(AspectRatio.RATIO_16_9, AspectRatioStrategy.FALLBACK_RULE_AUTO))
         .build()
+    
+    // プレビューを設定
     val preview = androidx.camera.core.Preview.Builder()
-        .setResolutionSelector(rs)
+        .setResolutionSelector(resolutionSelector)
         .build().also {
             it.setSurfaceProvider(previewView.surfaceProvider)
         }
     preview.targetRotation = Surface.ROTATION_0
 
-    // カメラの選択
-    // 「背面カメラ」選択の例
-    val lensFacing = CameraSelector.LENS_FACING_BACK
+    // カメラセレクターを設定（背面カメラ）
     val cameraSelector = CameraSelector.Builder()
-        .requireLensFacing(lensFacing)
+        .requireLensFacing(CameraSelector.LENS_FACING_BACK)
         .build()
 
-    // ImageCaptureユースケース
-    val imageCapture: ImageCapture = remember { ImageCapture.Builder().build() }
+    // 画像キャプチャユースケースを設定
+    val imageCapture = ImageCapture.Builder().build()
 
-    val viewPort =  ViewPort.Builder(Rational(previewSize.height, previewSize.width), Surface.ROTATION_0).setScaleType(ViewPort.FILL_CENTER).build()
+    // ビューポートとユースケースグループを設定
+    val viewPort = ViewPort.Builder(
+        Rational(previewSize.height, previewSize.width),
+        Surface.ROTATION_0
+    ).setScaleType(ViewPort.FILL_CENTER).build()
+    
     val useCaseGroup = UseCaseGroup.Builder()
         .addUseCase(preview)
         .addUseCase(imageCapture)
         .setViewPort(viewPort)
         .build()
 
-    LaunchedEffect(lensFacing) {
-        val cameraProvider = context.getCameraProvider()
+    return CameraComponents(preview, cameraSelector, imageCapture, useCaseGroup)
+}
 
+/**
+ * カメラコンポーネントデータクラス
+ */
+private data class CameraComponents(
+    val preview: androidx.camera.core.Preview,
+    val cameraSelector: CameraSelector,
+    val imageCapture: ImageCapture,
+    val useCaseGroup: UseCaseGroup
+)
+
+/**
+ * カメラをライフサイクルにバインドする
+ */
+@Composable
+private fun CameraLifecycle(
+    lifecycleOwner: LifecycleOwner,
+    cameraSelector: CameraSelector,
+    useCaseGroup: UseCaseGroup,
+    context: Context
+) {
+    LaunchedEffect(cameraSelector) {
+        val cameraProvider = context.getCameraProvider()
         cameraProvider.unbindAll()
         cameraProvider.bindToLifecycle(
             lifecycleOwner,
             cameraSelector,
-//            preview,
-//            imageCapture,
             useCaseGroup
         )
     }
+}
 
-    // ファインダー
+/**
+ * カメラUIを表示する
+ */
+@Composable
+private fun CameraUI(
+    previewSize: IntSize,
+    previewView: PreviewView,
+    imageCapture: ImageCapture,
+    outputDirectory: File,
+    executor: Executor,
+    getCapturedMsg: () -> String,
+    setCapturedMsg: (Uri) -> Unit,
+    getRecognitionMsg: () -> String,
+    setRecognitionMsg: (String) -> Unit,
+    sound: MediaActionSound
+) {
     Box(
         contentAlignment = Alignment.BottomCenter,
         modifier = Modifier.fillMaxSize()
     ) {
-        // 撮影後の保存先パスの表示
-        Text(getRecognitionMsg(), fontSize = 20.sp,
-            modifier = Modifier.background(
-                Color.Gray
-            )
-                .size(previewSize.width.dp, (previewSize.height/10).dp)
-                .padding(0.dp, 20.dp, 0.dp, 0.dp)
-                .align(Alignment.TopCenter)
+        // 認識結果表示エリア
+        RecognitionResultDisplay(
+            getRecognitionMsg = getRecognitionMsg,
+            previewSize = previewSize
         )
-        // ファインダー
-        AndroidView({ previewView },
-//            modifier = Modifier.fillMaxSize()
+        
+        // カメラプレビュー
+        AndroidView(
+            factory = { previewView },
             modifier = Modifier.align(Alignment.Center)
         )
-
-        IconButton(
-            modifier = Modifier
-                .size(150.dp)
-                .padding(5.dp)
-                .border(1.dp, Color.White),
-            onClick = {
-                sound.play(MediaActionSound.SHUTTER_CLICK) //【シャッター音】シャッター音を鳴らす
+        
+        // 撮影ボタン
+        CaptureButton(
+            onCapture = {
+                sound.play(MediaActionSound.SHUTTER_CLICK)
                 takePhoto(
                     imageCapture = imageCapture,
                     outputDirectory = outputDirectory,
                     executor = executor,
                     setCapturedMsg = setCapturedMsg,
-                    setRecognitionMsg = setRecognitionMsg,
-                )
-            },
-            content = {
-                Icon(
-                    imageVector = Icons.Rounded.AddCircle,
-                    contentDescription = "Image Capture",
-                    tint = Color.Gray,
-                    modifier = Modifier
-                        .size(200.dp)
-                        .padding(30.dp)
-                        .border(5.dp, Color.Gray)
+                    setRecognitionMsg = setRecognitionMsg
                 )
             }
         )
-        // 撮影後の保存先パスの表示
-        Text(getCapturedMsg(),
-            modifier = Modifier.background(
-                Color.Gray
-            )
-        )
+        
+        // 撮影ファイルパス表示エリア
+        CapturedPathDisplay(getCapturedMsg = getCapturedMsg)
     }
+}
+
+/**
+ * 認識結果表示エリア
+ */
+@Composable
+private fun RecognitionResultDisplay(
+    getRecognitionMsg: () -> String,
+    previewSize: IntSize
+) {
+    Text(
+        text = getRecognitionMsg(),
+        fontSize = 20.sp,
+        modifier = Modifier
+            .background(Color.Gray)
+            .size(previewSize.width.dp, (previewSize.height/10).dp)
+            .padding(0.dp, 20.dp, 0.dp, 0.dp)
+            .align(Alignment.TopCenter)
+    )
+}
+
+/**
+ * 撮影ボタン
+ */
+@Composable
+private fun CaptureButton(onCapture: () -> Unit) {
+    IconButton(
+        modifier = Modifier
+            .size(150.dp)
+            .padding(5.dp)
+            .border(1.dp, Color.White),
+        onClick = onCapture,
+        content = {
+            Icon(
+                imageVector = Icons.Rounded.AddCircle,
+                contentDescription = "Image Capture",
+                tint = Color.Gray,
+                modifier = Modifier
+                    .size(200.dp)
+                    .padding(30.dp)
+                    .border(5.dp, Color.Gray)
+            )
+        }
+    )
+}
+
+/**
+ * 撮影ファイルパス表示エリア
+ */
+@Composable
+private fun CapturedPathDisplay(getCapturedMsg: () -> String) {
+    Text(
+        text = getCapturedMsg(),
+        modifier = Modifier.background(Color.Gray)
+    )
 }
