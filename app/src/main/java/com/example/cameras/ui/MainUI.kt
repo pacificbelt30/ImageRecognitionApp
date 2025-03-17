@@ -1,5 +1,6 @@
 package com.example.cameras.ui
 
+import android.Manifest
 import android.media.MediaActionSound
 import android.os.Build
 import android.util.Log
@@ -7,6 +8,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 // import com.example.cameras.ui.CameraView

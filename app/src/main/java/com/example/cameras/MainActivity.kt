@@ -83,7 +83,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         // カメラの初期化
-        initializeCamera()
+        initializeCamera(it, cameraManager)
         
         // UIの設定
         initializeUI()

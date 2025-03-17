@@ -1,6 +1,7 @@
 package com.example.cameras.image_recognition
 
 import android.graphics.Bitmap
+import android.graphics.ImageDecoder
 import android.net.Uri
 import android.util.Log
 import com.google.ai.client.generativeai.GenerativeModel
@@ -10,8 +11,14 @@ import com.google.ai.client.generativeai.type.content
 import com.google.ai.client.generativeai.type.Content
 import com.google.ai.client.generativeai.type.generationConfig
 import com.google.ai.client.generativeai.type.GenerationConfig
+import com.example.cameras.BuildConfig
 import com.example.cameras.utils.formatRecognitionResults
+import com.example.cameras.view.RecognizeObjects
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import java.io.File
 
 class Gemini {
 
@@ -80,7 +87,7 @@ class Gemini {
 /**
  * Processes the captured image and performs object recognition
  */
-private fun processImageAndRecognize(
+public fun processImageAndRecognize(
     photoFile: File, 
     setCapturedMsg: (Uri) -> Unit,
     setRecognitionMsg: (String) -> Unit

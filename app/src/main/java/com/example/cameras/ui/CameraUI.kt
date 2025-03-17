@@ -1,5 +1,9 @@
 package com.example.cameras.ui
 
+import android.content.Context
+import android.media.MediaActionSound
+import android.util.Log
+import android.net.Uri
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
@@ -38,7 +42,15 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import kotlin.math.roundToInt
+import java.io.File
+import java.util.concurrent.Executor
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.example.cameras.camera.setupCameraComponents
+import com.example.cameras.utils.createPhotoFile
+import com.example.cameras.image_recognition.processImageAndRecognize
+import com.example.cameras.view.CameraUiState
 
 /**
  * カメラのプレビューのサイズを計算

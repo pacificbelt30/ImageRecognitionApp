@@ -1,5 +1,7 @@
 package com.example.cameras.camera
 
+import android.util.Rational
+import android.view.Surface
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture

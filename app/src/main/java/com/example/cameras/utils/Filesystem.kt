@@ -1,6 +1,8 @@
 package com.example.cameras.utils
 
+import androidx.activity.ComponentActivity
 import java.io.File
+import java.text.SimpleDateFormat
 
 /**
  * Creates a photo file with timestamp-based name
@@ -14,10 +16,10 @@ public fun createPhotoFile(outputDirectory: File): File {
 /**
   * 保存先ディレクトリを取得
   */
-public fun getOutputDirectory(): File {
+public fun getOutputDirectory(ca: ComponentActivity): File {
     // Scoped storage(対象範囲別ストレージ)
-    val outDir = getExternalFilesDir(null)?.path.let {
-        File(it, resources.getString(R.string.app_name)).apply { mkdirs() }
+    val outDir = ca.getExternalFilesDir(null)?.path.let {
+        File(ca, ca.resources.getString(ca.R.string.app_name)).apply { ca.mkdirs() }
     }
-    return if (outDir != null && outDir.exists()) outDir else filesDir
+    return if (outDir != null && outDir.exists()) outDir else ca.filesDir
 }

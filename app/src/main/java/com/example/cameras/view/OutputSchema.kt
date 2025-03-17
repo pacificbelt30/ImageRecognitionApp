@@ -3,7 +3,7 @@ package com.example.cameras.view
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class RecognizeObjects (
+public data class RecognizeObjects (
     val result: List<Object>
 )
 
