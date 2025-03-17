@@ -118,10 +118,11 @@ class MainActivity : ComponentActivity() {
             MainCamera(
                 outputDirectory = cameraManager.outputDirectory,
                 executor = cameraManager.cameraExecutor,
-                getCapturedMsg = uiState::getCapturedMsg,
-                setCapturedMsg = uiState::setCapturedMsg,
-                getRecognitionMsg = uiState::getRecognitionMsg,
-                setRecognitionMsg = uiState::setRecognitionMsg,
+                uiState = uiState,
+                // getCapturedMsg = uiState::getCapturedMsg,
+                // setCapturedMsg = uiState::setCapturedMsg,
+                // getRecognitionMsg = uiState::getRecognitionMsg,
+                // setRecognitionMsg = uiState::setRecognitionMsg,
                 sound = cameraManager.sound
             )
         }
@@ -171,42 +172,43 @@ class MainActivity : ComponentActivity() {
         }
     }
     
+}
+
+/**
+    * カメラUI状態の管理クラス
+    */
+private class CameraUiState {
+    // 撮影後のファイルパス表示関連
+    private var photoUri: Uri? = null
+    private val capturedMsg = mutableStateOf("")
+    private val recognitionMsg = mutableStateOf("")
+    
     /**
-     * カメラUI状態の管理クラス
-     */
-    private class CameraUiState {
-        // 撮影後のファイルパス表示関連
-        private var photoUri: Uri? = null
-        private val capturedMsg = mutableStateOf("")
-        private val recognitionMsg = mutableStateOf("")
+        * 撮影されたイメージのパスメッセージを取得
+        */
+    fun getCapturedMsg(): String = capturedMsg.value
+    
+    /**
+        * 撮影されたイメージのURIを設定し、表示用メッセージを更新
+        */
+    fun setCapturedMsg(uri: Uri) {
+        photoUri = uri
         
-        /**
-         * 撮影されたイメージのパスメッセージを取得
-         */
-        fun getCapturedMsg(): String = capturedMsg.value
-        
-        /**
-         * 撮影されたイメージのURIを設定し、表示用メッセージを更新
-         */
-        fun setCapturedMsg(uri: Uri) {
-            photoUri = uri
-            
-            val msg = uri.toString()
-            val msgTemp = msg.replace("file:///storage/emulated/0/", "内部ストレージ：")
-            capturedMsg.value = msgTemp.replace("%20", " ")
-        }
-        
-        /**
-         * 認識結果のメッセージを取得
-         */
-        fun getRecognitionMsg(): String = "認識結果: \n${recognitionMsg.value}"
-        
-        /**
-         * 認識結果のメッセージを設定
-         */
-        fun setRecognitionMsg(s: String) {
-            recognitionMsg.value = s
-        }
+        val msg = uri.toString()
+        val msgTemp = msg.replace("file:///storage/emulated/0/", "内部ストレージ：")
+        capturedMsg.value = msgTemp.replace("%20", " ")
+    }
+    
+    /**
+        * 認識結果のメッセージを取得
+        */
+    fun getRecognitionMsg(): String = "認識結果: \n${recognitionMsg.value}"
+    
+    /**
+        * 認識結果のメッセージを設定
+        */
+    fun setRecognitionMsg(s: String) {
+        recognitionMsg.value = s
     }
 }
 
@@ -358,10 +360,11 @@ private suspend fun Context.getCameraProvider(): ProcessCameraProvider =
 fun MainCamera(
     outputDirectory: File,
     executor: Executor,
-    getCapturedMsg: () -> String,
-    setCapturedMsg: (Uri) -> Unit,
-    getRecognitionMsg: () -> String,
-    setRecognitionMsg: (String) -> Unit,
+    uiState: CameraUiState,
+    // getCapturedMsg: () -> String,
+    // setCapturedMsg: (Uri) -> Unit,
+    // getRecognitionMsg: () -> String,
+    // setRecognitionMsg: (String) -> Unit,
     sound: MediaActionSound // 【シャッター音】
 ) {
     // 必要な権限を定義
@@ -381,10 +384,11 @@ fun MainCamera(
             CameraView(
                 outputDirectory = outputDirectory,
                 executor = executor,
-                getCapturedMsg = getCapturedMsg,
-                setCapturedMsg = setCapturedMsg,
-                getRecognitionMsg = getRecognitionMsg,
-                setRecognitionMsg = setRecognitionMsg,
+                uiState = uiState,
+                // getCapturedMsg = getCapturedMsg,
+                // setCapturedMsg = setCapturedMsg,
+                // getRecognitionMsg = getRecognitionMsg,
+                // setRecognitionMsg = setRecognitionMsg,
                 sound = sound // 【シャッター音】
             )
         }
@@ -416,10 +420,11 @@ fun MainCamera(
 fun CameraView(
     outputDirectory: File,
     executor: Executor,
-    getCapturedMsg: () -> String,
-    setCapturedMsg: (Uri) -> Unit,
-    getRecognitionMsg: () -> String,
-    setRecognitionMsg: (String) -> Unit,
+    uiState: CameraUiState,
+    // getCapturedMsg: () -> String,
+    // setCapturedMsg: (Uri) -> Unit,
+    // getRecognitionMsg: () -> String,
+    // setRecognitionMsg: (String) -> Unit,
     sound: MediaActionSound
 ) {
     val context = LocalContext.current
@@ -441,10 +446,11 @@ fun CameraView(
         imageCapture = imageCapture,
         outputDirectory = outputDirectory,
         executor = executor,
-        getCapturedMsg = getCapturedMsg,
-        setCapturedMsg = setCapturedMsg,
-        getRecognitionMsg = getRecognitionMsg,
-        setRecognitionMsg = setRecognitionMsg,
+        uiState = uiState,
+        // getCapturedMsg = getCapturedMsg,
+        // setCapturedMsg = setCapturedMsg,
+        // getRecognitionMsg = getRecognitionMsg,
+        // setRecognitionMsg = setRecognitionMsg,
         sound = sound
     )
 }
@@ -569,10 +575,11 @@ private fun CameraUI(
     imageCapture: ImageCapture,
     outputDirectory: File,
     executor: Executor,
-    getCapturedMsg: () -> String,
-    setCapturedMsg: (Uri) -> Unit,
-    getRecognitionMsg: () -> String,
-    setRecognitionMsg: (String) -> Unit,
+    uiState: CameraUiState,
+    // getCapturedMsg: () -> String,
+    // setCapturedMsg: (Uri) -> Unit,
+    // getRecognitionMsg: () -> String,
+    // setRecognitionMsg: (String) -> Unit,
     sound: MediaActionSound
 ) {
     Box(
@@ -599,14 +606,14 @@ private fun CameraUI(
                     imageCapture = imageCapture,
                     outputDirectory = outputDirectory,
                     executor = executor,
-                    setCapturedMsg = setCapturedMsg,
-                    setRecognitionMsg = setRecognitionMsg
+                    setCapturedMsg = uiState.setCapturedMsg,
+                    setRecognitionMsg = uiState.setRecognitionMsg
                 )
             }
         )
         
         // 撮影ファイルパス表示エリア
-        CapturedPathDisplay(getCapturedMsg = getCapturedMsg)
+        CapturedPathDisplay(getCapturedMsg = uiState.getCapturedMsg)
     }
 }
 
@@ -618,15 +625,23 @@ private fun RecognitionResultDisplay(
     getRecognitionMsg: () -> String,
     previewSize: IntSize
 ) {
-    Text(
-        text = getRecognitionMsg(),
-        fontSize = 20.sp,
+    Box(
+        contentAlignment = Alignment.TopCenter,
         modifier = Modifier
-            .background(Color.Gray)
             .size(previewSize.width.dp, (previewSize.height/10).dp)
-            .padding(0.dp, 20.dp, 0.dp, 0.dp)
-            .align(Alignment.TopCenter)
-    )
+            .align(Alignment.TopCenter),
+    ) {
+        Text(
+            text = getRecognitionMsg(),
+            fontSize = 20.sp,
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Gray)
+                // .size(previewSize.width.dp, (previewSize.height/10).dp)
+                .padding(0.dp, 20.dp, 0.dp, 0.dp)
+                // .align(Alignment.TopCenter)
+        )
+    }
 }
 
 /**
@@ -663,4 +678,80 @@ private fun CapturedPathDisplay(getCapturedMsg: () -> String) {
         text = getCapturedMsg(),
         modifier = Modifier.background(Color.Gray)
     )
+}
+
+/**
+ * カメラアプリの状態管理を担当するViewModel
+ */
+class CameraViewModel : ViewModel() {
+    // UI状態
+    private var photoUri = mutableStateOf<Uri?>(null)
+    val capturedMsg = mutableStateOf("")
+    val recognitionMsg = mutableStateOf("")
+    
+    /**
+     * 撮影されたイメージのURIを設定し、表示用メッセージを更新
+     */
+    fun setCapturedMsg(uri: Uri) {
+        photoUri.value = uri
+        
+        val msg = uri.toString()
+        val msgTemp = msg.replace("file:///storage/emulated/0/", "内部ストレージ：")
+        capturedMsg.value = msgTemp.replace("%20", " ")
+    }
+    
+    /**
+     * 認識結果のメッセージを設定
+     */
+    fun setRecognitionMsg(s: String) {
+        recognitionMsg.value = s
+    }
+    
+    /**
+     * 認識結果のメッセージを表示用にフォーマット
+     */
+    fun getFormattedRecognitionMsg(): String = "認識結果: \n${recognitionMsg.value}"
+    
+    /**
+     * 画像認識処理を実行
+     */
+    fun processImage(bitmap: Bitmap) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Initialize Gemini and process the image
+                val gem = Gemini()
+                val output = gem.GetStructuredContent(bitmap)
+                
+                // Parse the JSON response
+                val outputJson = Json.decodeFromString<RecognizeObjects>(output)
+                
+                // Format the results for display
+                val result = formatRecognitionResults(outputJson)
+                
+                // Update the UI with the formatted results
+                launch(Dispatchers.Main) {
+                    Log.d("GEMINI", result)
+                    recognitionMsg.value = result
+                }
+            } catch (e: Exception) {
+                Log.e("GEMINI", "Recognition failed: ${e.message}", e)
+                launch(Dispatchers.Main) {
+                    recognitionMsg.value = "画像認識に失敗しました。"
+                }
+            }
+        }
+    }
+    
+    /**
+     * 認識結果を人間が読める形式にフォーマット
+     */
+    private fun formatRecognitionResults(outputJson: RecognizeObjects): String {
+        val builder = StringBuilder()
+        outputJson.result.forEach { obj ->
+            // Format reliability as percentage with two decimal places
+            val reliabilityPercent = (obj.reliability * 100).toFloat()
+            builder.append("・ ${obj.objectName}: ${reliabilityPercent}%\n")
+        }
+        return builder.toString()
+    }
 }

@@ -7,13 +7,14 @@ import com.google.ai.client.generativeai.type.FunctionType
 import com.google.ai.client.generativeai.type.Schema
 import com.google.ai.client.generativeai.type.content
 import com.google.ai.client.generativeai.type.generationConfig
+import com.google.ai.client.generativeai.type.GenerationConfig
 
 class Gemini {
 
-    private val modelName = "gemini-1.5-flash"
+    private val modelName = "gemini-2.0-flash"
     private val apiKey = BuildConfig.apiKey
 
-    private fun createGenerativeModel(config: generationConfig? = null): GenerativeModel {
+    private fun createGenerativeModel(config: GenerationConfig? = null): GenerativeModel {
         return GenerativeModel(
             modelName = modelName,
             apiKey = apiKey,
@@ -21,23 +22,11 @@ class Gemini {
         )
     }
 
-    private fun createInputContent(prompt: String, input: Bitmap): content {
+    private fun createInputContent(prompt: String, input: Bitmap): Content {
         return content {
             text(prompt)
             image(input)
         }
-    }
-
-    suspend fun InitContent(input: Bitmap) {
-        val generativeModel = createGenerativeModel()
-        val prompt = "If input images, describe about provided image."
-        val inputContent = createInputContent(prompt, input)
-        val response = generativeModel.generateContent(inputContent)
-        val responseText = response.text
-        if (responseText != null)
-            Log.d("GEMINI", responseText)
-        else
-            Log.d("GEMINI", "Response is NULL")
     }
 
     suspend fun GetStructuredContent(input: Bitmap): String {
