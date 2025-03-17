@@ -19,6 +19,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -46,6 +48,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import kotlin.math.roundToInt
+import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import java.io.File
 import java.util.concurrent.Executor

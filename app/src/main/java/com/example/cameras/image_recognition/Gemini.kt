@@ -12,7 +12,7 @@ import com.google.ai.client.generativeai.type.Content
 import com.google.ai.client.generativeai.type.generationConfig
 import com.google.ai.client.generativeai.type.GenerationConfig
 import com.example.cameras.BuildConfig
-import com.example.cameras.utils.formatRecognitionResults
+import com.example.cameras.view.formatRecognitionResults
 import com.example.cameras.view.RecognizeObjects
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

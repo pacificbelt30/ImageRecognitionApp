@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
+import com.example.cameras.R
 
 /**
  * Creates a photo file with timestamp-based name
