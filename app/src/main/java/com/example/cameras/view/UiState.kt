@@ -18,8 +18,8 @@ public class CameraUiState {
     fun getCapturedMsg(): String = capturedMsg.value
     
     /**
-        * 撮影されたイメージのURIを設定し、表示用メッセージを更新
-        */
+      * 撮影されたイメージのURIを設定し、表示用メッセージを更新
+      */
     fun setCapturedMsg(uri: Uri) {
         photoUri = uri
         

@@ -2,11 +2,17 @@ package com.example.cameras.view
 
 import kotlinx.serialization.Serializable
 
+/**
+ * 認識結果の JSON スキーマ(Objectのリスト)
+ */
 @Serializable
 public data class RecognizeObjects (
     val result: List<Object>
 )
 
+/**
+ * 1つのオブジェクトの認識結果を表す JSON スキーマ
+ */
 @Serializable
 data class Object (
     val objectName: String,
@@ -19,7 +25,7 @@ data class Object (
 public fun formatRecognitionResults(outputJson: RecognizeObjects): String {
     val builder = StringBuilder()
     outputJson.result.forEach { obj ->
-        // Format reliability as percentage with two decimal places
+        // 信頼性の値を小数点以下2桁まででフォーマット
         val reliabilityPercent = (obj.reliability * 100).toFloat()
         builder.append("・ ${obj.objectName}: ${reliabilityPercent}%\n")
     }

@@ -14,7 +14,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-// import com.example.cameras.ui.CameraView
 import java.io.File
 import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
@@ -30,12 +29,11 @@ public fun MainUI(
 ) {
     // 必要な権限を定義
     val permissionList = mutableListOf(Manifest.permission.CAMERA)
-    // Android 9 Pie以下では「WRITE_EXTERNAL_STORAGE」の権限も必要
+    // Android 9 Pie以下では「WRITE_EXTERNAL_STORAGE」の権限も必要らしい
     if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
         permissionList.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
     }
 
-    // multiplePermissionsStateのインスタンスを生成
     val multiplePermissionsState = rememberMultiplePermissionsState(permissionList)
 
     when {

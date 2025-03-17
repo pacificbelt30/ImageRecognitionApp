@@ -7,8 +7,8 @@ import java.util.Locale
 import com.example.cameras.R
 
 /**
- * Creates a photo file with timestamp-based name
- */
+  * タイムスタンプを利用したファイル名で写真ファイルを作成
+  */
 public fun createPhotoFile(outputDirectory: File): File {
     val filenameFormat = "yyyy-MM-dd-HH-mm-ss-SSS"
     val timestamp = SimpleDateFormat(filenameFormat, Locale.JAPAN).format(System.currentTimeMillis())

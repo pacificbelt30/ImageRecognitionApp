@@ -85,50 +85,39 @@ class Gemini {
 }
 
 /**
- * Processes the captured image and performs object recognition
+ * Gemini APIを使用して、カメラで撮影された画像を対象に画像認識を実行します。
  */
-public fun processImageAndRecognize(
+public fun processAndRecognizeImage(
     photoFile: File, 
     setCapturedMsg: (Uri) -> Unit,
     setRecognitionMsg: (String) -> Unit
 ) {
     val savedUri = Uri.fromFile(photoFile)
-    
-    // Update UI with file path
     setCapturedMsg(savedUri)
-    
-    // Process the image for recognition
     val path = savedUri.path ?: return
     
     try {
-        // Decode the bitmap from the saved file
         val source = ImageDecoder.createSource(File(path))
         val bitmap = ImageDecoder.decodeBitmap(source)
         
-        // Launch image recognition in a coroutine
         recognizeImageContents(bitmap, setRecognitionMsg)
     } catch (e: Exception) {
         Log.e("Camera", "Failed to process image: ${e.message}", e)
     }
 }
 
-/**
- * Performs image recognition using Gemini API
- */
 private fun recognizeImageContents(bitmap: Bitmap, setRecognitionMsg: (String) -> Unit) {
     CoroutineScope(Dispatchers.Main).launch {
         try {
-            // Initialize Gemini and process the image
             val gem = Gemini()
             val output = gem.GetStructuredContent(bitmap)
             
-            // Parse the JSON response
+            // JSONデータをパースして、認識結果を取得
             val outputJson = Json.decodeFromString<RecognizeObjects>(output)
             
-            // Format the results for display
+            // 認識結果をフォーマット
             val result = formatRecognitionResults(outputJson)
             
-            // Update the UI with the formatted results
             Log.d("GEMINI", result)
             setRecognitionMsg(result)
         } catch (e: Exception) {

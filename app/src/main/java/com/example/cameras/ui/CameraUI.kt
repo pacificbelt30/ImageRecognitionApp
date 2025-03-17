@@ -55,7 +55,7 @@ import java.util.concurrent.Executor
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.example.cameras.camera.setupCameraComponents
 import com.example.cameras.utils.createPhotoFile
-import com.example.cameras.image_recognition.processImageAndRecognize
+import com.example.cameras.image_recognition.processAndRecognizeImage
 import com.example.cameras.view.CameraUiState
 
 /**
@@ -65,7 +65,7 @@ private fun calculatePreviewSize(windowSize: IntSize): IntSize {
     val windowWidth = windowSize.width
     val windowHeight = windowSize.height
 
-    val targetAspectRatio = 3f / 4f  // 縦方向のアプリでは3:4がよい
+    val targetAspectRatio = 3f / 4f
 
     // 画面幅に基づいてプレビューの高さを計算
     val previewWidth = windowWidth
@@ -95,23 +95,17 @@ private fun takePhoto(
     setCapturedMsg: (Uri) -> Unit,
     setRecognitionMsg: (String) -> Unit
 ) {
-    // Ensure the image capture use case is initialized
     val imageCaptureUseCase = imageCapture ?: return
-    
-    // Create output file with timestamp format
     val photoFile = createPhotoFile(outputDirectory)
-    
-    // Create output options for the capture
     val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
     
-    // Execute the capture process
+    // カメラの撮影 + 画像認識
     imageCaptureUseCase.takePicture(
         outputOptions,
         executor,
         object : ImageCapture.OnImageSavedCallback {
             override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                // Process the saved image
-                processImageAndRecognize(photoFile, setCapturedMsg, setRecognitionMsg)
+                processAndRecognizeImage(photoFile, setCapturedMsg, setRecognitionMsg)
             }
             
             override fun onError(e: ImageCaptureException) {
@@ -155,6 +149,9 @@ private fun configureCameraPreview(context: Context): Pair<IntSize, PreviewView>
     return Pair(previewSize, previewView)
 }
 
+/**
+  * カメラコンポーネントとプレビューを設定する
+  */
 @Composable
 fun CameraView(
     outputDirectory: File,
@@ -288,7 +285,7 @@ private fun RecognitionResultDisplay(
     Box(
         contentAlignment = Alignment.TopStart,
         modifier = Modifier
-            .fillMaxWidth()  // 横幅いっぱいに広げる
+            .fillMaxWidth()
             .height((previewSize.height/10).dp)
             .background(Color.Gray)
             .padding(0.dp, 20.dp, 0.dp, 0.dp)
@@ -296,7 +293,7 @@ private fun RecognitionResultDisplay(
         Text(
             text = getRecognitionMsg(),
             fontSize = 20.sp,
-            color = Color.White  // テキストの視認性向上
+            color = Color.White
         )
     }
 }

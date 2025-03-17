@@ -17,24 +17,18 @@ public class CameraManager {
     lateinit var cameraExecutor: ExecutorService
     lateinit var sound: MediaActionSound
     
-    /**
-      * サウンドの初期化
-      */
+    // シャッター音の初期化
     fun initializeSound() {
         sound = MediaActionSound()
         sound.load(MediaActionSound.SHUTTER_CLICK)
     }
     
-    /**
-      * Executorの初期化
-      */
+    // Executorの初期化
     fun initializeExecutor() {
         cameraExecutor = Executors.newSingleThreadExecutor()
     }
     
-    /**
-      * リソースの解放
-      */
+    // リソースの解放
     fun release() {
         cameraExecutor.shutdown()
         sound.release()

@@ -36,6 +36,10 @@ public data class CameraComponents(
 
 /**
  * カメラコンポーネント（Preview, CameraSelector, ImageCapture）を設定
+    * 以下のように設定いないとうまく画像を保存できなかった。。
+        * Preview は 90度回転
+        * ImageCapture は 0度回転
+        * ViewPort は 0度回転
  */
 public fun setupCameraComponents(
     previewSize: IntSize,
@@ -49,27 +53,27 @@ public fun setupCameraComponents(
     // プレビューを設定
     val preview = androidx.camera.core.Preview.Builder()
         .setResolutionSelector(resolutionSelector)
-        .setTargetRotation(Surface.ROTATION_90)  // 明示的に回転を設定
+        .setTargetRotation(Surface.ROTATION_90)
         .build().also {
             it.setSurfaceProvider(previewView.surfaceProvider)
         }
     preview.targetRotation = Surface.ROTATION_0
 
-    // カメラセレクターを設定（背面カメラ）
+    // どのカメラを使うかの設定（背面カメラ）
     val cameraSelector = CameraSelector.Builder()
         .requireLensFacing(CameraSelector.LENS_FACING_BACK)
         .build()
 
     // 画像キャプチャユースケースを設定
     val imageCapture = ImageCapture.Builder()
-        .setResolutionSelector(resolutionSelector)  // 同じ解像度セレクターを使用
-        .setTargetRotation(Surface.ROTATION_0)      // 同じ回転を使用
+        .setResolutionSelector(resolutionSelector)
+        .setTargetRotation(Surface.ROTATION_0)
         .build()
 
     // ビューポートとユースケースグループを設定
     val viewPort = ViewPort.Builder(
         // Rational(previewSize.height, previewSize.width),
-        Rational(previewSize.width, previewSize.height), // 幅と高さを正しく指定
+        Rational(previewSize.width, previewSize.height), 
         Surface.ROTATION_0
     ).setScaleType(ViewPort.FILL_CENTER).build()
     
