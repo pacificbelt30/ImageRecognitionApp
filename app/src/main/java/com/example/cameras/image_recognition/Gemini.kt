@@ -1,6 +1,7 @@
-package com.example.cameras
+package com.example.cameras.image_recognition
 
 import android.graphics.Bitmap
+import android.net.Uri
 import android.util.Log
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.FunctionType
@@ -9,6 +10,8 @@ import com.google.ai.client.generativeai.type.content
 import com.google.ai.client.generativeai.type.Content
 import com.google.ai.client.generativeai.type.generationConfig
 import com.google.ai.client.generativeai.type.GenerationConfig
+import com.example.cameras.utils.formatRecognitionResults
+import kotlinx.serialization.json.Json
 
 class Gemini {
 
@@ -70,6 +73,60 @@ class Gemini {
         } else {
             Log.d("GEMINI", "Response is NULL")
             ""
+        }
+    }
+}
+
+/**
+ * Processes the captured image and performs object recognition
+ */
+private fun processImageAndRecognize(
+    photoFile: File, 
+    setCapturedMsg: (Uri) -> Unit,
+    setRecognitionMsg: (String) -> Unit
+) {
+    val savedUri = Uri.fromFile(photoFile)
+    
+    // Update UI with file path
+    setCapturedMsg(savedUri)
+    
+    // Process the image for recognition
+    val path = savedUri.path ?: return
+    
+    try {
+        // Decode the bitmap from the saved file
+        val source = ImageDecoder.createSource(File(path))
+        val bitmap = ImageDecoder.decodeBitmap(source)
+        
+        // Launch image recognition in a coroutine
+        recognizeImageContents(bitmap, setRecognitionMsg)
+    } catch (e: Exception) {
+        Log.e("Camera", "Failed to process image: ${e.message}", e)
+    }
+}
+
+/**
+ * Performs image recognition using Gemini API
+ */
+private fun recognizeImageContents(bitmap: Bitmap, setRecognitionMsg: (String) -> Unit) {
+    CoroutineScope(Dispatchers.Main).launch {
+        try {
+            // Initialize Gemini and process the image
+            val gem = Gemini()
+            val output = gem.GetStructuredContent(bitmap)
+            
+            // Parse the JSON response
+            val outputJson = Json.decodeFromString<RecognizeObjects>(output)
+            
+            // Format the results for display
+            val result = formatRecognitionResults(outputJson)
+            
+            // Update the UI with the formatted results
+            Log.d("GEMINI", result)
+            setRecognitionMsg(result)
+        } catch (e: Exception) {
+            Log.e("GEMINI", "Recognition failed: ${e.message}", e)
+            setRecognitionMsg("画像認識に失敗しました。")
         }
     }
 }
