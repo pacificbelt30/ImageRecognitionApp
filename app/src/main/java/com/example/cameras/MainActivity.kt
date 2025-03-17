@@ -216,22 +216,23 @@ private fun calculatePreviewSize(windowSize: IntSize): IntSize {
     val windowWidth = windowSize.width
     val windowHeight = windowSize.height
 
-    val aspectRatio = 3f / 4f
+    val targetAspectRatio = 3f / 4f  // 縦方向のアプリでは3:4がよい
 
-    val newWidth: Int
-    val newHeight: Int
-
-    if (windowWidth < windowHeight) {
-        newWidth = windowWidth
-        newHeight = (windowWidth * (1f / aspectRatio)).roundToInt()
+    // 画面幅に基づいてプレビューの高さを計算
+    val previewWidth = windowWidth
+    val previewHeight = (windowWidth / targetAspectRatio).roundToInt()
+    
+    // 高さが画面を超える場合は調整
+    val finalHeight = if (previewHeight > windowHeight) {
+        windowHeight
     } else {
-        newWidth = (windowHeight * (1f / aspectRatio)).roundToInt()
-        newHeight = windowHeight
+        previewHeight
     }
-    Log.d("CAL", newWidth.toString())
-    Log.d("CAL", windowWidth.toString())
 
-    return IntSize(newWidth, newHeight)
+    Log.d("CameraPreview", "Window size: $windowWidth x $windowHeight")
+    Log.d("CameraPreview", "Preview size: $previewWidth x $finalHeight")
+
+    return IntSize(previewWidth, finalHeight)
 }
 
 
@@ -471,7 +472,6 @@ private fun configureCameraPreview(context: Context): Pair<IntSize, PreviewView>
                 height = configuration.screenHeightDp.dp.toPx().toInt(),
             )
         }
-        Log.d("SIZEZ", windowSize.toString())
         calculatePreviewSize(windowSize)
     }
     
@@ -480,13 +480,12 @@ private fun configureCameraPreview(context: Context): Pair<IntSize, PreviewView>
         PreviewView(context).apply {
             layoutParams = android.view.ViewGroup.LayoutParams(
                 previewSize.width,
-                previewSize.height,
+                previewSize.height
             )
-            scaleType = PreviewView.ScaleType.FIT_CENTER
+            // スケールタイプを CENTER_INSIDE に変更して、プレビューがコンテナに収まるようにする
+            scaleType = PreviewView.ScaleType.FILL_CENTER
         }
     }
-    
-    Log.d("SIZE", "${previewSize.width}, ${previewSize.height}")
     
     return Pair(previewSize, previewView)
 }
@@ -506,6 +505,7 @@ private fun setupCameraComponents(
     // プレビューを設定
     val preview = androidx.camera.core.Preview.Builder()
         .setResolutionSelector(resolutionSelector)
+        .setTargetRotation(Surface.ROTATION_0)  // 明示的に回転を設定
         .build().also {
             it.setSurfaceProvider(previewView.surfaceProvider)
         }
@@ -517,11 +517,15 @@ private fun setupCameraComponents(
         .build()
 
     // 画像キャプチャユースケースを設定
-    val imageCapture = ImageCapture.Builder().build()
+    val imageCapture = ImageCapture.Builder()
+        .setResolutionSelector(resolutionSelector)  // 同じ解像度セレクターを使用
+        .setTargetRotation(Surface.ROTATION_0)      // 同じ回転を使用
+        .build()
 
     // ビューポートとユースケースグループを設定
     val viewPort = ViewPort.Builder(
-        Rational(previewSize.height, previewSize.width),
+        // Rational(previewSize.height, previewSize.width),
+        Rational(previewSize.width, previewSize.height), // 幅と高さを正しく指定
         Surface.ROTATION_0
     ).setScaleType(ViewPort.FILL_CENTER).build()
     
@@ -587,16 +591,24 @@ private fun CameraUI(
         contentAlignment = Alignment.BottomCenter,
         modifier = Modifier.fillMaxSize()
     ) {
+        // カメラプレビュー - 明示的にサイズを指定してボックス内に配置
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(previewSize.width.dp, previewSize.height.dp)
+                .background(Color.Black),  // プレビュー外の領域を黒にする
+            contentAlignment = Alignment.Center
+        ) {
+            AndroidView(
+                factory = { previewView },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
         // 認識結果表示エリア
         RecognitionResultDisplay(
-            getRecognitionMsg = getRecognitionMsg,
+            getRecognitionMsg = uiState::getRecognitionMsg,
             previewSize = previewSize
-        )
-        
-        // カメラプレビュー
-        AndroidView(
-            factory = { previewView },
-            modifier = Modifier.align(Alignment.Center)
         )
         
         // 撮影ボタン
@@ -607,14 +619,14 @@ private fun CameraUI(
                     imageCapture = imageCapture,
                     outputDirectory = outputDirectory,
                     executor = executor,
-                    setCapturedMsg = uiState.setCapturedMsg,
-                    setRecognitionMsg = uiState.setRecognitionMsg
+                    setCapturedMsg = uiState::setCapturedMsg,
+                    setRecognitionMsg = uiState::setRecognitionMsg
                 )
             }
         )
         
         // 撮影ファイルパス表示エリア
-        CapturedPathDisplay(getCapturedMsg = uiState.getCapturedMsg)
+        CapturedPathDisplay(getCapturedMsg = uiState::getCapturedMsg)
     }
 }
 
@@ -629,18 +641,18 @@ private fun RecognitionResultDisplay(
     Box(
         contentAlignment = Alignment.TopCenter,
         modifier = Modifier
-            .size(previewSize.width.dp, (previewSize.height/10).dp)
-            .align(Alignment.TopCenter),
+            .fillMaxWidth()  // 横幅いっぱいに広げる
+            .height((previewSize.height/10).dp)
+            .align(Alignment.TopCenter)
+            .background(Color.Gray)
+            .padding(0.dp, 20.dp, 0.dp, 0.dp)
+            // .size(previewSize.width.dp, (previewSize.height/10).dp)
+            // .align(Alignment.TopCenter),
     ) {
         Text(
             text = getRecognitionMsg(),
             fontSize = 20.sp,
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Gray)
-                // .size(previewSize.width.dp, (previewSize.height/10).dp)
-                .padding(0.dp, 20.dp, 0.dp, 0.dp)
-                // .align(Alignment.TopCenter)
+            color = Color.White  // テキストの視認性向上
         )
     }
 }
@@ -675,10 +687,19 @@ private fun CaptureButton(onCapture: () -> Unit) {
  */
 @Composable
 private fun CapturedPathDisplay(getCapturedMsg: () -> String) {
-    Text(
-        text = getCapturedMsg(),
-        modifier = Modifier.background(Color.Gray)
-    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Gray.copy(alpha = 0.8f))
+            .padding(8.dp)
+    ) {
+        Text(
+            text = getCapturedMsg(),
+            color = Color.White,
+            fontSize = 14.sp,
+            modifier = Modifier.align(Alignment.Center)
+        )
+    }
 }
 
 /**
