@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 /**
     * カメラUI状態の管理クラス
     */
-private class CameraUiState {
+class CameraUiState {
     // 撮影後のファイルパス表示関連
     private var photoUri: Uri? = null
     private val capturedMsg = mutableStateOf("")
