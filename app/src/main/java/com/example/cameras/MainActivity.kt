@@ -77,7 +77,7 @@ class MainActivity : ComponentActivity() {
     private val cameraManager = CameraManager()
     
     // UI状態
-    private val uiState = CameraUiState()
+    // private val uiState = CameraUiState()
     
     // ライフサイクル：Activity生成時
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -118,7 +118,7 @@ class MainActivity : ComponentActivity() {
             MainCamera(
                 outputDirectory = cameraManager.outputDirectory,
                 executor = cameraManager.cameraExecutor,
-                uiState = uiState,
+                // uiState = uiState,
                 // getCapturedMsg = uiState::getCapturedMsg,
                 // setCapturedMsg = uiState::setCapturedMsg,
                 // getRecognitionMsg = uiState::getRecognitionMsg,
@@ -360,7 +360,7 @@ private suspend fun Context.getCameraProvider(): ProcessCameraProvider =
 fun MainCamera(
     outputDirectory: File,
     executor: Executor,
-    uiState: CameraUiState,
+    // uiState: CameraUiState,
     // getCapturedMsg: () -> String,
     // setCapturedMsg: (Uri) -> Unit,
     // getRecognitionMsg: () -> String,
@@ -384,7 +384,7 @@ fun MainCamera(
             CameraView(
                 outputDirectory = outputDirectory,
                 executor = executor,
-                uiState = uiState,
+                // uiState = uiState,
                 // getCapturedMsg = getCapturedMsg,
                 // setCapturedMsg = setCapturedMsg,
                 // getRecognitionMsg = getRecognitionMsg,
@@ -420,7 +420,7 @@ fun MainCamera(
 fun CameraView(
     outputDirectory: File,
     executor: Executor,
-    uiState: CameraUiState,
+    // uiState: CameraUiState,
     // getCapturedMsg: () -> String,
     // setCapturedMsg: (Uri) -> Unit,
     // getRecognitionMsg: () -> String,
@@ -446,7 +446,7 @@ fun CameraView(
         imageCapture = imageCapture,
         outputDirectory = outputDirectory,
         executor = executor,
-        uiState = uiState,
+        // uiState = uiState,
         // getCapturedMsg = getCapturedMsg,
         // setCapturedMsg = setCapturedMsg,
         // getRecognitionMsg = getRecognitionMsg,
@@ -575,13 +575,14 @@ private fun CameraUI(
     imageCapture: ImageCapture,
     outputDirectory: File,
     executor: Executor,
-    uiState: CameraUiState,
+    // uiState: CameraUiState,
     // getCapturedMsg: () -> String,
     // setCapturedMsg: (Uri) -> Unit,
     // getRecognitionMsg: () -> String,
     // setRecognitionMsg: (String) -> Unit,
     sound: MediaActionSound
 ) {
+    val uiState = remember { CameraViewModel() }
     Box(
         contentAlignment = Alignment.BottomCenter,
         modifier = Modifier.fillMaxSize()
