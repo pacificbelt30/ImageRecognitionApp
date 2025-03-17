@@ -483,7 +483,7 @@ private fun configureCameraPreview(context: Context): Pair<IntSize, PreviewView>
                 previewSize.height
             )
             // スケールタイプを CENTER_INSIDE に変更して、プレビューがコンテナに収まるようにする
-            scaleType = PreviewView.ScaleType.FILL_CENTER
+            scaleType = PreviewView.ScaleType.FIT_CENTER
         }
     }
     
@@ -505,7 +505,7 @@ private fun setupCameraComponents(
     // プレビューを設定
     val preview = androidx.camera.core.Preview.Builder()
         .setResolutionSelector(resolutionSelector)
-        .setTargetRotation(Surface.ROTATION_0)  // 明示的に回転を設定
+        .setTargetRotation(Surface.ROTATION_90)  // 明示的に回転を設定
         .build().also {
             it.setSurfaceProvider(previewView.surfaceProvider)
         }
@@ -586,7 +586,7 @@ private fun CameraUI(
     // setRecognitionMsg: (String) -> Unit,
     sound: MediaActionSound
 ) {
-    val uiState = remember { CameraViewModel() }
+    val uiState = remember { CameraUiState() }
     Box(
         contentAlignment = Alignment.BottomCenter,
         modifier = Modifier.fillMaxSize()
@@ -606,10 +606,15 @@ private fun CameraUI(
         }
 
         // 認識結果表示エリア
-        RecognitionResultDisplay(
-            getRecognitionMsg = uiState::getRecognitionMsg,
-            previewSize = previewSize
-        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+        ) {
+            RecognitionResultDisplay(
+                getRecognitionMsg = uiState::getRecognitionMsg,
+                previewSize = previewSize
+            )
+        }
         
         // 撮影ボタン
         CaptureButton(
@@ -625,8 +630,8 @@ private fun CameraUI(
             }
         )
         
-        // 撮影ファイルパス表示エリア
-        CapturedPathDisplay(getCapturedMsg = uiState::getCapturedMsg)
+        // 撮影ファイルパス表示エリア（無くても良い）
+        // CapturedPathDisplay(getCapturedMsg = uiState::getCapturedMsg)
     }
 }
 
@@ -643,11 +648,8 @@ private fun RecognitionResultDisplay(
         modifier = Modifier
             .fillMaxWidth()  // 横幅いっぱいに広げる
             .height((previewSize.height/10).dp)
-            .align(Alignment.TopCenter)
             .background(Color.Gray)
             .padding(0.dp, 20.dp, 0.dp, 0.dp)
-            // .size(previewSize.width.dp, (previewSize.height/10).dp)
-            // .align(Alignment.TopCenter),
     ) {
         Text(
             text = getRecognitionMsg(),
@@ -699,81 +701,5 @@ private fun CapturedPathDisplay(getCapturedMsg: () -> String) {
             fontSize = 14.sp,
             modifier = Modifier.align(Alignment.Center)
         )
-    }
-}
-
-/**
- * カメラアプリの状態管理を担当するViewModel
- */
-class CameraViewModel : ViewModel() {
-    // UI状態
-    private var photoUri = mutableStateOf<Uri?>(null)
-    val capturedMsg = mutableStateOf("")
-    val recognitionMsg = mutableStateOf("")
-    
-    /**
-     * 撮影されたイメージのURIを設定し、表示用メッセージを更新
-     */
-    fun setCapturedMsg(uri: Uri) {
-        photoUri.value = uri
-        
-        val msg = uri.toString()
-        val msgTemp = msg.replace("file:///storage/emulated/0/", "内部ストレージ：")
-        capturedMsg.value = msgTemp.replace("%20", " ")
-    }
-    
-    /**
-     * 認識結果のメッセージを設定
-     */
-    fun setRecognitionMsg(s: String) {
-        recognitionMsg.value = s
-    }
-    
-    /**
-     * 認識結果のメッセージを表示用にフォーマット
-     */
-    fun getFormattedRecognitionMsg(): String = "認識結果: \n${recognitionMsg.value}"
-    
-    /**
-     * 画像認識処理を実行
-     */
-    fun processImage(bitmap: Bitmap) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                // Initialize Gemini and process the image
-                val gem = Gemini()
-                val output = gem.GetStructuredContent(bitmap)
-                
-                // Parse the JSON response
-                val outputJson = Json.decodeFromString<RecognizeObjects>(output)
-                
-                // Format the results for display
-                val result = formatRecognitionResults(outputJson)
-                
-                // Update the UI with the formatted results
-                launch(Dispatchers.Main) {
-                    Log.d("GEMINI", result)
-                    recognitionMsg.value = result
-                }
-            } catch (e: Exception) {
-                Log.e("GEMINI", "Recognition failed: ${e.message}", e)
-                launch(Dispatchers.Main) {
-                    recognitionMsg.value = "画像認識に失敗しました。"
-                }
-            }
-        }
-    }
-    
-    /**
-     * 認識結果を人間が読める形式にフォーマット
-     */
-    private fun formatRecognitionResults(outputJson: RecognizeObjects): String {
-        val builder = StringBuilder()
-        outputJson.result.forEach { obj ->
-            // Format reliability as percentage with two decimal places
-            val reliabilityPercent = (obj.reliability * 100).toFloat()
-            builder.append("・ ${obj.objectName}: ${reliabilityPercent}%\n")
-        }
-        return builder.toString()
     }
 }

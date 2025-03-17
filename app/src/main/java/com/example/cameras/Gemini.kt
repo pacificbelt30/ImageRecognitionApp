@@ -6,6 +6,7 @@ import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.FunctionType
 import com.google.ai.client.generativeai.type.Schema
 import com.google.ai.client.generativeai.type.content
+import com.google.ai.client.generativeai.type.Content
 import com.google.ai.client.generativeai.type.generationConfig
 import com.google.ai.client.generativeai.type.GenerationConfig
 
